@@ -13,9 +13,11 @@ from sentence_transformers import SentenceTransformer
 # Load environment variables
 load_dotenv()
 
-# Set up NLTK data directory and download if not available
+# Set up NLTK data directory
 nltk_data_dir = os.path.join(os.getcwd(), 'nltk_data')
 nltk.data.path.append(nltk_data_dir)
+
+# Check if the data exists before downloading
 if not os.path.exists(os.path.join(nltk_data_dir, 'corpora', 'wordnet')):
     nltk.download('wordnet', download_dir=nltk_data_dir)
 
