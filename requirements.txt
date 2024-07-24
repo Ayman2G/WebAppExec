@@ -2,7 +2,7 @@ streamlit
 pandas
 scikit-learn
 nltk
-openai
+openai==0.28
 sentence-transformers
 boto3
 python-dotenv

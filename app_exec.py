@@ -13,8 +13,11 @@ from sentence_transformers import SentenceTransformer
 # Load environment variables
 load_dotenv()
 
-# Ensure nltk wordnet data is downloaded
-nltk.download('wordnet')
+# Set up NLTK data directory and download if not available
+nltk_data_dir = os.path.join(os.getcwd(), 'nltk_data')
+nltk.data.path.append(nltk_data_dir)
+if not os.path.exists(os.path.join(nltk_data_dir, 'corpora', 'wordnet')):
+    nltk.download('wordnet', download_dir=nltk_data_dir)
 
 # Set up Boto3 session
 boto3.setup_default_session(
@@ -28,6 +31,7 @@ st.set_page_config(page_title="TargetList Recommender", page_icon=":dart:")
 
 # OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
+
 # Function to load dataset from S3
 @st.cache_data
 def load_data():
@@ -42,7 +46,7 @@ def load_data():
     df['Client_combined'] = df.apply(lambda row: row['Client_industry'] if pd.isna(row['Client_Subindustry']) else f"{row['Client_industry']} ({row['Client_Subindustry']})", axis=1)
     return df
 
-# Function to get relevant industries using OpenAI GPT-3.5
+# Function to get relevant industries using OpenAI GPT
 def get_relevant_industries(description):
     prompt = f"""
     Identify and rank the most relevant and specific industries and keywords for the following company description, excluding broad categories like 'Technology' and 'SaaS'. Give me only a list of the industries identified without repeating the word industry, sorted from most relevant and specific:
@@ -51,7 +55,7 @@ def get_relevant_industries(description):
     Relevant Industries:
     """
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
@@ -99,7 +103,7 @@ def advanced_alg(df, client_industries, target_industries, excluded_dossiers, in
     
     return scored_targets[['Target','Industry','Affinity_Industries', 'Dossier', 'Client_combined' , 'Tiering', 'similarity_score', 'combined_score']]
 
-# Function to add GPT-3.5 scores and comments to the dataset
+# Function to add GPT scores and comments to the dataset
 def add_gpt_scores_and_comments(recommendations, description):
     def evaluate_relevance(target):
         prompt = f"""
@@ -115,7 +119,7 @@ def add_gpt_scores_and_comments(recommendations, description):
         Score: [0-10]
         """
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt}
@@ -222,7 +226,7 @@ if st.session_state.selected_industries:
     if st.button('Add GPT-4 Scores and Comments'):
         with st.spinner('Evaluating relevance using GPT-4...'):
             st.session_state.recommendations_with_gpt = add_gpt_scores_and_comments(st.session_state.recommendations, st.session_state.input_description)
-        st.write(f"<h3>Dataset with GPT-3.5 Scores ({len(st.session_state.recommendations_with_gpt)})</h3>", unsafe_allow_html=True)
+        st.write(f"<h3>Dataset with GPT-4 Scores ({len(st.session_state.recommendations_with_gpt)})</h3>", unsafe_allow_html=True)
         st.dataframe(st.session_state.recommendations_with_gpt)
 
         if len(st.session_state.recommendations_with_gpt) == 0:
