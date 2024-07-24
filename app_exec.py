@@ -7,7 +7,7 @@ from io import StringIO
 from sklearn.metrics.pairwise import cosine_similarity
 import nltk
 from nltk.corpus import wordnet
-import openai
+from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
 # Load environment variables
@@ -35,8 +35,8 @@ boto3.setup_default_session(
 st.set_page_config(page_title="TargetList Recommender", page_icon=":dart:")
 
 # OpenAI API key
-openai.api_key = os.getenv('OPENAI_API_KEY')
-
+client = OpenAI()
+client.api_key = os.getenv('OPENAI_API_KEY')
 # Function to load dataset from S3
 @st.cache_data
 def load_data():
@@ -59,16 +59,13 @@ def get_relevant_industries(description):
 
     Relevant Industries:
     """
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=150,
-        n=1,
-        stop=None,
-        temperature=0.7,
     )
     relevant_part = response['choices'][0]['message']['content'].strip()
     industries = [line.strip() for line in relevant_part.split("\n") if line.strip()]
@@ -123,7 +120,7 @@ def add_gpt_scores_and_comments(recommendations, description):
         Format your response as:
         Score: [0-10]
         """
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
