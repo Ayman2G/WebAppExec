@@ -5,3 +5,4 @@ nltk
 openai
 sentence-transformers
 boto3
+python-dotenv
