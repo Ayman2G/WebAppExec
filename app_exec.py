@@ -18,8 +18,11 @@ nltk_data_dir = os.path.join(os.getcwd(), 'nltk_data')
 nltk.data.path.append(nltk_data_dir)
 
 # Check if the wordnet data is already available
-if not os.path.exists(os.path.join(nltk_data_dir, 'corpora', 'wordnet')):
+try:
+    wordnet.ensure_loaded()
+except LookupError:
     st.error("NLTK 'wordnet' data is not available. Please include the 'wordnet' data in the deployment package.")
+    st.stop()
 
 # Set up Boto3 session
 boto3.setup_default_session(
@@ -47,7 +50,6 @@ def load_data():
     df['Client_industry'] = df['Client_industry'].replace('MarTech', 'MarTech (Marketing Technology)')
     df['Client_combined'] = df.apply(lambda row: row['Client_industry'] if pd.isna(row['Client_Subindustry']) else f"{row['Client_industry']} ({row['Client_Subindustry']})", axis=1)
     return df
-
 
 # Function to get relevant industries using OpenAI GPT
 def get_relevant_industries(description):
