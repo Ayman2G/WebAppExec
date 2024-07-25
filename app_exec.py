@@ -6,6 +6,7 @@ import boto3
 from io import StringIO
 from sklearn.metrics.pairwise import cosine_similarity
 import nltk
+import openai
 from nltk.corpus import wordnet
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
@@ -37,6 +38,19 @@ st.set_page_config(page_title="TargetList Recommender", page_icon=":dart:")
 # OpenAI API key
 client = OpenAI()
 client.api_key = os.getenv('OPENAI_API_KEY')
+try:
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",  # Check if this model name is correct
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Explain the concept of recursion."}
+        ],
+        max_tokens=150,
+        temperature=0.7,
+    )
+    print(response)
+except Exception as e:
+    print(f"Error: {e}")
 # Function to load dataset from S3
 @st.cache_data
 def load_data():
@@ -59,18 +73,22 @@ def get_relevant_industries(description):
 
     Relevant Industries:
     """
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=150,
-    )
-    relevant_part = response['choices'][0]['message']['content'].strip()
-    industries = [line.strip() for line in relevant_part.split("\n") if line.strip()]
-    return industries
-
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",  # Ensure this is a valid model name
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=150,
+        )
+        relevant_part = response['choices'][0]['message']['content'].strip()
+        industries = [line.strip() for line in relevant_part.split("\n") if line.strip()]
+        return industries
+    except openai.error.OpenAIError as e:
+        print(f"An error occurred: {e}")
+        st.error(f"An error occurred while fetching data from OpenAI: {e}")
+        return []
 # Function to load the Sentence Transformer model
 @st.cache_resource
 def load_model(model_name):
